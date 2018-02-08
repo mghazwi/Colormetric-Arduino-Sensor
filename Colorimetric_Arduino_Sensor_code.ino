@@ -1,36 +1,39 @@
-/*
-Ricardo Mena C
-ricardo@crcibernetica.com
-http://crcibernetica.com
-  This example code is in public domain
-*/
 
+/* * * * * * * * * * * * * * *\
+ *    Calorimeter program    *
+ *     Arduino Software      *
+ *       Jan 08 2018         *
+ *       Written by          *
+ *       M Alghazwi          *
+ *       m.ghazwi@gmail.com  *  
+ *   http://mghazwi.com      *
+\* * * * * * * * * * * * * * */
+
+//The code uses the following libraries
 #include <SoftwareSerial.h>
+#include <math.h>
+//Nextion library for the use of Nextion screen
+//Library Available at https://github.com/bborncr/nextion
 #include <Nextion.h>
-#include <math.h> 
 
-SoftwareSerial nextion(10, 11);// Nextion TX to pin 2 and RX to pin 3 of Arduino
+SoftwareSerial nextion(10, 11);// Nextion TX to pin 10 and RX to pin 11 of Arduino
 
 // measured and equation values (change equation values with your calibrated values)
 int measured = 0;
-// i0 is the value of picric acid + water as baseline to be used in Lambert-Beer law
+// i0 is the value of picric acid + water as baseline to be used in Lambert-Beer law https://en.wikipedia.org/wiki/Beer%E2%80%93Lambert_law
 // = -log10(i1/i0)
-int i0 = 333; 
+int i0 = 333;  // change this with your baseline value eg. water
 // y = a*x + b
-double a = 18.9201;
-double b = 0.1183;
+double a = 18.9201;  // change this with your calculated a
+double b = 0.1183;   // change this with your calculated b
 
 Nextion myNextion(nextion, 9600); //create a Nextion object named myNextion using the nextion serial port @ 9600bps
-boolean button1State;
-boolean button2State;
 
+// pin 12 and 13 used for flashing LEDs 
 int absorbanceLed   = 12;
 int flucoLed = 13;
-
+// Sensor attached on pin A0
 int photodiodeInput = A0;
-
-// Calorimeter threshold before the timer is stopped.
-int threshold = 100;
 
 void setup() {
 
@@ -51,10 +54,6 @@ void setup() {
 
 
 void caloriMeasurement(){
-  
-  // announce
-  //Serial.println("Performing a absorbance measurement, press 5 to stop the time manual");
-  //Serial.println("Measurement will take around 10-15 secconds, press 5 to stop the time manual");
   
   // turn on LED
   digitalWrite(absorbanceLed, HIGH);
@@ -92,9 +91,7 @@ void calibrate() {
   double n;
   String m;
   n = (double)measured/(double)i0;
-  Serial.println(n);
   l = -log10(n); // applying Lambert-Beer law
-  Serial.println(l);
   y = a*l+b; // applying equation
   Serial.println(y);
   m = String(y);
@@ -102,22 +99,26 @@ void calibrate() {
   myNextion.setComponentText("t2", m);
 }
 
+/*
+Please note that message value changes so please adjust it to the
+message value shown on the serial monitor 
+for example in our set up:
+button 1 sends message ->  "65 0 2 0 ffff ffff ffff"
+button 2 sends message ->  "65 0 4 0 ffff ffff ffff"
+*/
 void loop() {
   String message = myNextion.listen(); //check for message
   if(message != ""){ // if a message is received...
     Serial.println(message); //...print it out
   }
   if (message == "65 0 2 0 ffff ffff ffff") {
-   // myNextion.buttonToggle(button1State, "b0", 0, 1);
     myNextion.setComponentText("t2", "Processing...");
     caloriMeasurement();
-    //myNextion.setComponentText("t2", "1 pressed");
   }
   if (message == "65 0 4 0 ffff ffff ffff") {
     //myNextion.buttonToggle(button2State, "b0", 0, 2);
     myNextion.setComponentText("t2", "Processing...");
     calibrate();
-    //myNextion.setComponentText("t2", "2 pressed");
   }
 
   
